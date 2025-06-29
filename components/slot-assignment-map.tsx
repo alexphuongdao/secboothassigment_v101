@@ -166,7 +166,7 @@ export default function SlotAssignmentMap() {
   }
 
   // Create an array of section IDs from A to N
-  const sectionIds = Array.from({ length: 14 }, (_, i) => String.fromCharCode(65 + i))
+  const sectionIds = Array.from({ length: 14 }, (_, i) => String.fromCharCode(65 + i)).reverse()
 
   return (
     <DndProvider backend={HTML5Backend}>
