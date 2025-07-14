@@ -23,19 +23,24 @@ export default function ExportButton({ companies, slotAssignments }: ExportButto
       }
     })
 
-    // Create CSV header matching the new format
-    let csv = "COMPANY,PRIMARY MAJOR,WED BOOTHS,THUR BOOTHS,DAYS REGISTERED,ASSIGNMENT\n"
+    // New CSV header
+    let csv = "COMPANY,DAYS REGISTERED,ASSIGNMENT\n"
 
-    // Add data for each company
     companies.forEach((company) => {
       const assignments = companyAssignments.get(company.id) || []
-      if (assignments.length > 0) {
-        // Format the assignments as a comma-separated list
-        const assignmentStr = assignments.join(", ")
+      // Simplify slot IDs: e.g., J-bottom-25 -> J25
+      const assignmentStr = assignments
+        .map(slotId => {
+          const match = slotId.match(/^([A-Z])-(?:top|bottom)-(\d+)$/)
+          return match ? `${match[1]}${match[2]}` : slotId
+        })
+        .join(", ")
+      let daysRegistered = ""
+      if (company.wedBooths && company.thurBooths) daysRegistered = "Wednesday Thursday"
+      else if (company.wedBooths) daysRegistered = "Wednesday"
+      else if (company.thurBooths) daysRegistered = "Thursday"
 
-        // Add the company data to the CSV
-        csv += `"${company.name}","${company.primaryMajor}","${company.wedBooths}","${company.thurBooths}","${company.daysRegistered}","${assignmentStr}"\n`
-      }
+      csv += `"${company.name}","${daysRegistered}","${assignmentStr}"\n`
     })
 
     // Create a blob and download link
@@ -57,3 +62,5 @@ export default function ExportButton({ companies, slotAssignments }: ExportButto
     </Button>
   )
 }
+
+

@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Upload } from "lucide-react"
@@ -16,6 +15,20 @@ export default function ImportButton({ onImport }: ImportButtonProps) {
   const { toast } = useToast()
   const [isImporting, setIsImporting] = useState(false)
 
+  // Add this helper function above your handleFileChange
+  const mapSlotId = (id: string): string => {
+      const match = id.match(/^([A-Z])(\d+)$/)
+      if (!match) return id
+      const letter = match[1]
+      const num = Number(match[2])
+      // Top slots: 1-8, 16-23; Bottom slots: 9-15, 24-30
+      const isTop = (
+        (num >= 1 && num <= 8) ||
+        (num >= 16 && num <= 23)
+      )
+      const position = isTop ? "top" : "bottom"
+      return `${letter}-${position}-${num}`
+  }
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
@@ -29,56 +42,51 @@ export default function ImportButton({ onImport }: ImportButtonProps) {
         if (!csvText) throw new Error("Failed to read file")
 
         // Parse CSV
-        const lines = csvText.split("\n")
+        const lines = csvText.split("\n").filter(line => line.trim().length > 0)
         if (lines.length < 2) throw new Error("CSV file is empty or invalid")
 
-        // Check header - updated to match new format
-        const header = lines[0].split(",")
+        // Check header - must match new format
+        const header = lines[0].split(",").map(h => h.trim())
         const expectedHeaders = [
           "COMPANY",
-          "PRIMARY MAJOR",
-          "WED BOOTHS",
-          "THUR BOOTHS",
           "DAYS REGISTERED",
           "ASSIGNMENT",
         ]
 
         if (!expectedHeaders.every((expectedHeader, index) => header[index] === expectedHeader)) {
           throw new Error(
-            "CSV format is invalid. Expected headers: COMPANY, PRIMARY MAJOR, WED BOOTHS, THUR BOOTHS, DAYS REGISTERED, ASSIGNMENT",
+            "CSV format is invalid. Expected headers: COMPANY, DAYS REGISTERED, ASSIGNMENT"
           )
         }
 
         const importedCompanies: Partial<Company>[] = []
         const importedAssignments: { companyName: string; slotIds: string[] }[] = []
-
+        const mapDaysRegistered = (days: string): "" | "Both days" | "Only Wednesday" | "Only Thursday" => {
+            if (days === "Wednesday Thursday") return "Both days"
+            if (days === "Wednesday") return "Only Wednesday"
+            if (days === "Thursday") return "Only Thursday"
+            return ""
+          }
         // Parse data rows
         for (let i = 1; i < lines.length; i++) {
-          if (!lines[i].trim()) continue // Skip empty lines
-
-          // Handle quoted CSV values properly
           const row = parseCSVLine(lines[i])
-          if (row.length < 6) continue
+          if (row.length < 3) continue
 
           const companyName = row[0].trim()
-          const primaryMajor = row[1].trim()
-          const wedBooths = Number.parseInt(row[2].trim()) || 0
-          const thurBooths = Number.parseInt(row[3].trim()) || 0
-          const daysRegistered = row[4].trim() as "Both days" | "Only Wednesday" | "Only Thursday" | ""
-          const assignmentStr = row[5].trim()
+          const daysRegistered = row[1].trim()
+          const assignmentStr = row[2].trim()
 
-          // Add company info
           importedCompanies.push({
-            name: companyName,
-            primaryMajor,
-            wedBooths,
-            thurBooths,
-            daysRegistered,
+                name: companyName,
+                daysRegistered: mapDaysRegistered(daysRegistered),
           })
 
-          // Parse assignments
           if (assignmentStr) {
-            const slotIds = assignmentStr.split(",").map((id) => id.trim())
+            const slotIds = assignmentStr
+              .split(",")
+              .map(id => id.trim())
+              .filter(Boolean)
+              .map(mapSlotId) // <-- map to internal format
             importedAssignments.push({
               companyName,
               slotIds,
@@ -86,7 +94,6 @@ export default function ImportButton({ onImport }: ImportButtonProps) {
           }
         }
 
-        // Call the import handler
         onImport(importedCompanies, importedAssignments)
 
         toast({
@@ -102,7 +109,6 @@ export default function ImportButton({ onImport }: ImportButtonProps) {
         })
       } finally {
         setIsImporting(false)
-        // Reset the file input
         event.target.value = ""
       }
     }
@@ -114,7 +120,6 @@ export default function ImportButton({ onImport }: ImportButtonProps) {
         variant: "destructive",
       })
       setIsImporting(false)
-      // Reset the file input
       event.target.value = ""
     }
 
@@ -129,7 +134,6 @@ export default function ImportButton({ onImport }: ImportButtonProps) {
 
     for (let i = 0; i < line.length; i++) {
       const char = line[i]
-
       if (char === '"') {
         inQuotes = !inQuotes
       } else if (char === "," && !inQuotes) {
@@ -139,11 +143,7 @@ export default function ImportButton({ onImport }: ImportButtonProps) {
         current += char
       }
     }
-
-    // Add the last field
     result.push(current)
-
-    // Clean up quotes
     return result.map((field) => field.replace(/^"|"$/g, ""))
   }
 
