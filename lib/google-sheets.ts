@@ -134,7 +134,12 @@ export class GoogleSheetsService {
           company.primaryMajor ?? "",
           company.boothsAllotted ?? -1,
           (company.daysRegistered ?? []).join(' '),
-          (company.boothAssignments ?? []).join(', ')
+          (company.boothAssignments ?? [])
+            .map(booth => {
+              const match = booth.match(/^([A-Z])-(?:top|bottom)-(\d{1,2})$/);
+              return match ? `${match[1]}${match[2]}` : booth;
+            })
+            .join(', ')
         ]),
       ];
 
