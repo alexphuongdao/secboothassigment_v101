@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { GoogleSheetsService } from "@/lib/google-sheets"
-import type { Company } from "@/lib/types"
+import type { Company, SlotAssignment } from "@/lib/types"
 
 // Replace with your actual Google Sheets ID
 const SPREADSHEET_ID = process.env.GOOGLE_SHEETS_ID
@@ -70,12 +70,16 @@ export async function POST(request: Request) {
         gDaysRegistered = [];
       }
 
+      const assignedSlots = assignments
+      .filter((slot: SlotAssignment) => slot.companyId === company.id)
+      .map((slot: SlotAssignment) => slot.slotId);
+
       return {
         company: company.name,
         primaryMajor: company.primaryMajor,
         boothsAllotted: company.wedBooths,
-        daysAttending: gDaysRegistered,
-        assignments: [],
+        daysRegistered: gDaysRegistered,
+        boothAssignments: assignedSlots,
       }
     })
 

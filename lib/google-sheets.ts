@@ -130,13 +130,13 @@ export class GoogleSheetsService {
       const values = [
         ["Company", "Primary Major", "Booths Allotted", "Days Registered", "Booth Assignments"],
         ...companies.map((company) => [
-          company.company,
-          company.primaryMajor,
-          company.boothsAllotted,
-          company.daysRegistered,
-          company.boothAssignments
+          company.company ?? "",
+          company.primaryMajor ?? "",
+          company.boothsAllotted ?? -1,
+          (company.daysRegistered ?? []).join(' '),
+          (company.boothAssignments ?? []).join(', ')
         ]),
-      ]
+      ];
 
       await sheets.spreadsheets.values.update({
         spreadsheetId: this.spreadsheetId,
