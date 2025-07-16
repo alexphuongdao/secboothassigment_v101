@@ -23,7 +23,7 @@ export default function ExportButton({ companies, slotAssignments }: ExportButto
       }
     })
 
-    // New CSV header
+    // New CSV header to match SEC format
     let csv = "COMPANY,DAYS REGISTERED,ASSIGNMENT\n"
 
     companies.forEach((company) => {
