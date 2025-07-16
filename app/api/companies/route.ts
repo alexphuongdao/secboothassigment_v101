@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { GoogleSheetsService } from "@/lib/google-sheets"
 import type { Company } from "@/lib/types"
 
-// Replace with your actual Google Sheets ID
+//  using the Google Sheets ID (secret in environment variables, ask me (Alex) to provide for you)
 const SPREADSHEET_ID = process.env.GOOGLE_SHEETS_ID
 const sheetsService = new GoogleSheetsService(SPREADSHEET_ID)
 
