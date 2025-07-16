@@ -15,7 +15,8 @@ export default function ImportButton({ onImport }: ImportButtonProps) {
   const { toast } = useToast()
   const [isImporting, setIsImporting] = useState(false)
 
-  // Add this helper function above your handleFileChange
+  // Purpose of this is to handle the map change inhandleFileChange, basically help it change the slot ID format
+  // from J-bottom-25 to J25, J-top-1 to J1,
   const mapSlotId = (id: string): string => {
       const match = id.match(/^([A-Z])(\d+)$/)
       if (!match) return id
@@ -86,7 +87,7 @@ export default function ImportButton({ onImport }: ImportButtonProps) {
               .split(",")
               .map(id => id.trim())
               .filter(Boolean)
-              .map(mapSlotId) // <-- map to internal format
+              .map(mapSlotId) // <-- map to internal format, look the mapSlotId function above
             importedAssignments.push({
               companyName,
               slotIds,
