@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { GoogleSheetsService } from "@/lib/google-sheets"
-import type { Company } from "@/lib/types"
+import type { Company, SlotAssignment } from "@/lib/types"
 
 //  using the Google Sheets ID (secret in environment variables, ask me (Alex) to provide for you)
 const SPREADSHEET_ID = process.env.GOOGLE_SHEETS_ID
@@ -15,14 +15,13 @@ export async function GET() {
       // Determine days registered based on Wed/Thur booth counts
       let daysRegistered: "Both days" | "Only Wednesday" | "Only Thursday" | "" = ""
 
-      const hasWednesday = gCompany.wedBooths > 0
-      const hasThursday = gCompany.thurBooths > 0
+      const gDaysRegistered = gCompany.daysRegistered
 
-      if (hasWednesday && hasThursday) {
+      if (gDaysRegistered.includes("Wednesday") && gDaysRegistered.includes("Thursday")) {
         daysRegistered = "Both days"
-      } else if (hasWednesday) {
+      } else if (gDaysRegistered.includes("Wednesday")) {
         daysRegistered = "Only Wednesday"
-      } else if (hasThursday) {
+      } else if (gDaysRegistered.includes("Thursday")) {
         daysRegistered = "Only Thursday"
       }
 
@@ -34,15 +33,12 @@ export async function GET() {
         .toUpperCase()
         .substring(0, 2)
 
-      // Total booths is the sum of Wed and Thur booths
-      const totalBooths = gCompany.wedBooths + gCompany.thurBooths
-
       return {
         id: (index + 1).toString(),
         name: gCompany.company,
         primaryMajor: gCompany.primaryMajor || "General",
-        wedBooths: gCompany.wedBooths,
-        thurBooths: gCompany.thurBooths,
+        wedBooths: gCompany.boothsAllotted,
+        thurBooths: gCompany.boothsAllotted,
         symbol: symbol || "XX",
         daysRegistered,
       }
@@ -61,11 +57,29 @@ export async function POST(request: Request) {
 
     // Transform back to Google Sheets format
     const googleCompanies = companies.map((company: Company) => {
+      const daysRegistered = company.daysRegistered
+      let gDaysRegistered: string[] = []
+
+      if (daysRegistered === "Both days") {
+        gDaysRegistered = ["Wednesday", "Thursday"];
+      } else if (daysRegistered === "Only Wednesday") {
+        gDaysRegistered = ["Wednesday"];
+      } else if (daysRegistered === "Only Thursday") {
+        gDaysRegistered = ["Thursday"];
+      } else {
+        gDaysRegistered = [];
+      }
+
+      const assignedSlots = assignments
+      .filter((slot: SlotAssignment) => slot.companyId === company.id)
+      .map((slot: SlotAssignment) => slot.slotId);
+
       return {
         company: company.name,
         primaryMajor: company.primaryMajor,
-        wedBooths: company.wedBooths,
-        thurBooths: company.thurBooths,
+        boothsAllotted: company.wedBooths,
+        daysRegistered: gDaysRegistered,
+        boothAssignments: assignedSlots,
       }
     })
 
